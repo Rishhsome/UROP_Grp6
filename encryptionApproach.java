@@ -17,10 +17,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.spec.KeySpec;
 import java.util.Base64;
 
+import java.io.FileWriter;
+import java.io.PrintWriter;
+
 public class encryptionApproach {
 
-    private static final int NUM_EDGE_SERVERS = 8;
-    private static final int NUM_CLOUD_SERVERS = 3;
+    private static final int NUM_EDGE_SERVERS = 50;
+    private static final int NUM_CLOUD_SERVERS = 31;
 
     private static List<MobileDevice> mobileDevices = new ArrayList<>();
     private static List<EdgeServer> edgeServers = new ArrayList<>();
@@ -28,18 +31,21 @@ public class encryptionApproach {
 
     public static void main(String[] args) throws IOException {
         // Create the mobile devices
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < 100; i++) {
             int dataProcessingSpeed = (int) (Math.random() * 100) + 1;
             int downloadSpeed = (int) (Math.random() * 50) + 1;
             int uploadSpeed = (int) (Math.random() * 10) + 1;
             int dataSentSize = (int) (Math.random() * 1000) + 1;
+            int xCoord = (int) (Math.random() * 100) + 1;
+            int yCoord = (int) (Math.random() * 100) + 1;
             long mn = 0;
             for (int m = 0; m < 10; m++)
                 mn = mn * 10 + (long) (Math.random() * 10);
             long mobileNumber = mn;
 
             mobileDevices
-                    .add(new MobileDevice(dataProcessingSpeed, downloadSpeed, uploadSpeed, dataSentSize, mobileNumber));
+                    .add(new MobileDevice(dataProcessingSpeed, downloadSpeed, uploadSpeed, dataSentSize, mobileNumber,
+                            xCoord, yCoord));
         }
 
         // Create the edge servers
@@ -47,31 +53,39 @@ public class encryptionApproach {
             int dataProcessingSpeed = (int) (Math.random() * 1000) + 1;
             int downloadSpeed = (int) (Math.random() * 500) + 1;
             int uploadSpeed = (int) (Math.random() * 100) + 1;
+            int xCoord = (int) (Math.random() * 100) + 1;
+            int yCoord = (int) (Math.random() * 100) + 1;
 
             // Get the mobile number of any random mobile device and use it as the key for a
             // particular edge server
             int randDevice = (int) (Math.random() * 20);
             long mobileNumber = mobileDevices.get(randDevice).getMobileNumber();
 
-            edgeServers.add(new EdgeServer(dataProcessingSpeed, downloadSpeed, uploadSpeed,
+            edgeServers.add(new EdgeServer(dataProcessingSpeed, downloadSpeed, uploadSpeed, xCoord, yCoord,
                     new AES_Encryption256(String.valueOf(mobileNumber))));
         }
 
         // Create the cloud servers
         for (int i = 0; i < NUM_CLOUD_SERVERS; i++) {
             int dataProcessingSpeed = (int) (Math.random() * 10000) + 1;
+            int downloadSpeed = (int) (Math.random() * 500) + 1;
+            int uploadSpeed = (int) (Math.random() * 100) + 1;
             String hostname = "127.0.0.1";
-            int port = 8080 + i;
+            int port = 8080;
 
             // Similar process for
             int randDevice = (int) (Math.random() * 20);
             long mobileNumber = mobileDevices.get(randDevice).getMobileNumber();
 
-            cloudServers.add(new CloudServer(dataProcessingSpeed, hostname, port,
+            cloudServers.add(new CloudServer(dataProcessingSpeed, hostname, port, downloadSpeed, uploadSpeed,
                     new AES_Decryption256(String.valueOf(mobileNumber))));
         }
 
-        // Create a thread pool to handle the mobile devices
+        saveMobileDeviceDataToCSV("Mobile_devices/mobile_device_data(100).csv", mobileDevices);
+        saveEdgeServerDataToCSV("Edge_servers/edge_server_data(50).csv", edgeServers);
+        saveCloudServerDataToCSV("Cloud_servers/cloud_server_data(31).csv", cloudServers);
+
+        // Creating a thread pool to handle the mobile devices
         ExecutorService executorService = Executors.newFixedThreadPool(NUM_EDGE_SERVERS);
 
         for (MobileDevice mobileDevice : mobileDevices) {
@@ -88,14 +102,14 @@ public class encryptionApproach {
                 System.out.println(
                         "Sending data for Mobile Device " + mobileDevice.getMobileNumber() + " to Edge Server...");
 
-                // Generate a random string for this mobile device
+                // Generating a random string for this mobile device
                 String randomString = generateRandomString();
                 System.out.println(
                         "Random String for Mobile Device " + mobileDevice.getMobileNumber() + ": " + randomString);
 
                 edgeServer.sendDataToCloudServer(cloudServer, mobileDevice, randomString);
 
-                // Process data received from the cloud server
+                // Processing data received from the cloud server
                 System.out.println("Processing data for Mobile Device " + mobileDevice.getMobileNumber()
                         + " received from the cloud server...");
                 cloudServer.processDataFromCloudServer(cloudServer, mobileDevice);
@@ -105,13 +119,114 @@ public class encryptionApproach {
         executorService.shutdown();
     }
 
+    private static void saveMobileDeviceDataToCSV(String filename, List<MobileDevice> devices) throws IOException {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+            // Write header
+            writer.println(
+                    "DataProcessingSpeed,DownloadSpeed,UploadSpeed,DataSentSize,MobileNumber,XCoordinate,YCoordinate");
+
+            // Write data
+            for (MobileDevice device : devices) {
+                writer.println(String.format("%d,%d,%d,%d,%d,%d,%d",
+                        device.getDataProcessingSpeed(),
+                        device.getDownloadSpeed(),
+                        device.getUploadSpeed(),
+                        device.getDataSentSize(),
+                        device.getMobileNumber(),
+                        device.getXCoordinate(),
+                        device.getYCoordinate()));
+            }
+        }
+    }
+
+    private static void saveEdgeServerDataToCSV(String filename, List<EdgeServer> servers) throws IOException {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+            // Write header
+            writer.println("DataProcessingSpeed,DownloadSpeed,UploadSpeed,XCoordinate,YCoordinate");
+
+            // Write data
+            for (EdgeServer server : servers) {
+                writer.println(String.format("%d,%d,%d,%d,%d",
+                        server.getDataProcessingSpeed(),
+                        server.getDownloadSpeed(),
+                        server.getUploadSpeed(),
+                        server.getXCoordinate(),
+                        server.getYCoordinate()));
+            }
+        }
+    }
+
+    private static void saveCloudServerDataToCSV(String filename, List<CloudServer> servers) throws IOException {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
+            // Write header
+            writer.println("DataProcessingSpeed,Hostname,Port,DownloadSpeed,UploadSpeed");
+
+            // Write data
+            for (CloudServer server : servers) {
+                writer.println(String.format("%d,%s,%d,%d,%d",
+                        server.getDataProcessingSpeed(),
+                        server.getHostname(),
+                        server.getPort(),
+                        server.getDownloadSpeed(),
+                        server.getUploadSpeed()));
+            }
+        }
+    }
+
     private static EdgeServer findNearestEdgeServer(MobileDevice mobileDevice) {
-        return edgeServers.get(0);
+        // return edgeServers.get(0);
+        double minDistance = Double.MAX_VALUE;
+        EdgeServer nearestServer = null;
+
+        for (EdgeServer edgeServer : edgeServers) {
+            double distance = calculateDistance(mobileDevice, edgeServer);
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestServer = edgeServer;
+            }
+        }
+
+        return nearestServer;
+    }
+
+    private static double calculateDistance(MobileDevice mobileDevice, EdgeServer edgeServer) {
+        int deviceX = mobileDevice.getXCoordinate();
+        int deviceY = mobileDevice.getYCoordinate();
+        int serverX = edgeServer.getXCoordinate();
+        int serverY = edgeServer.getYCoordinate();
+
+        return Math.sqrt(Math.pow(deviceX - serverX, 2) + Math.pow(deviceY - serverY, 2));
     }
 
     private static CloudServer findMostEfficientCloudServer(int dataProcessingSpeed, int downloadSpeed, int uploadSpeed,
             int dataSentSize) {
-        return cloudServers.get(0);
+        // return cloudServers.get(0);
+        double maxEfficiency = Double.MIN_VALUE;
+        CloudServer mostEfficientServer = null;
+
+        for (CloudServer cloudServer : cloudServers) {
+            double efficiency = calculateEfficiency(dataProcessingSpeed, downloadSpeed, uploadSpeed, dataSentSize,
+                    cloudServer);
+            if (efficiency > maxEfficiency) {
+                maxEfficiency = efficiency;
+                mostEfficientServer = cloudServer;
+            }
+        }
+
+        return mostEfficientServer;
+    }
+
+    private static double calculateEfficiency(int dataProcessingSpeed, int downloadSpeed, int uploadSpeed,
+            int dataSentSize, CloudServer cloudServer) {
+        double processingEfficiency = cloudServer.getDataProcessingSpeed() / dataProcessingSpeed;
+
+        double downloadEfficiency = cloudServer.getDownloadSpeed() / downloadSpeed;
+
+        double uploadEfficiency = cloudServer.getUploadSpeed() / uploadSpeed;
+
+        double overallEfficiency = (processingEfficiency + downloadEfficiency + uploadEfficiency) / 3.0;
+
+        return overallEfficiency;
     }
 
     public static class MobileDevice {
@@ -121,14 +236,18 @@ public class encryptionApproach {
         private int uploadSpeed;
         private int dataSentSize;
         private long mobileNumber;
+        private int xCoord;
+        private int yCoord;
 
         public MobileDevice(int dataProcessingSpeed, int downloadSpeed, int uploadSpeed, int dataSentSize,
-                long mobileNumber) {
+                long mobileNumber, int xCoord, int yCoord) {
             this.dataProcessingSpeed = dataProcessingSpeed;
             this.downloadSpeed = downloadSpeed;
             this.uploadSpeed = uploadSpeed;
             this.dataSentSize = dataSentSize;
             this.mobileNumber = mobileNumber;
+            this.xCoord = xCoord;
+            this.yCoord = yCoord;
         }
 
         public int getDataProcessingSpeed() {
@@ -150,6 +269,14 @@ public class encryptionApproach {
         public long getMobileNumber() {
             return mobileNumber;
         }
+
+        public int getXCoordinate() {
+            return xCoord;
+        }
+
+        public int getYCoordinate() {
+            return yCoord;
+        }
     }
 
     public static class EdgeServer {
@@ -157,14 +284,19 @@ public class encryptionApproach {
         private int dataProcessingSpeed;
         private int downloadSpeed;
         private int uploadSpeed;
+        private int xCoord;
+        private int yCoord;
 
         private AES_Encryption256 encryption;
 
-        public EdgeServer(int dataProcessingSpeed, int downloadSpeed, int uploadSpeed, AES_Encryption256 encryption) {
+        public EdgeServer(int dataProcessingSpeed, int downloadSpeed, int uploadSpeed, int xCoord, int yCoord,
+                AES_Encryption256 encryption) {
             this.dataProcessingSpeed = dataProcessingSpeed;
             this.downloadSpeed = downloadSpeed;
             this.uploadSpeed = uploadSpeed;
             this.encryption = encryption;
+            this.xCoord = xCoord;
+            this.yCoord = yCoord;
         }
 
         public int getDataProcessingSpeed() {
@@ -179,19 +311,27 @@ public class encryptionApproach {
             return uploadSpeed;
         }
 
+        public int getXCoordinate() {
+            return xCoord;
+        }
+
+        public int getYCoordinate() {
+            return yCoord;
+        }
+
         public void sendDataToCloudServer(CloudServer cloudServer, MobileDevice mobileDevice, String randomString) {
             try (Socket socket = new Socket(cloudServer.getHostname(), cloudServer.getPort())) {
-                // Get the input and output streams
+                // Getting the input and output streams
                 try (InputStream inputStream = socket.getInputStream();
                         OutputStream outputStream = socket.getOutputStream()) {
-                    // Encrypt the random string
+                    // Encrypting the random string
                     String encryptedData = encryptData(randomString);
 
-                    // Print the encrypted string
+                    // Printing the encrypted string
                     System.out.println("Encrypted String for Mobile Device " + mobileDevice.getMobileNumber() + ": "
                             + encryptedData);
 
-                    // Write the encrypted data to the cloud server
+                    // Writing the encrypted data to the cloud server
                     outputStream.write(encryptedData.getBytes(StandardCharsets.UTF_8));
                     System.out.println(
                             "Data sent successfully for Mobile Device " + mobileDevice.getMobileNumber() + ".");
@@ -201,7 +341,6 @@ public class encryptionApproach {
             }
         }
 
-        // Add a method to encrypt data
         private String encryptData(String data) {
             return encryption.encrypt(data);
         }
@@ -212,14 +351,19 @@ public class encryptionApproach {
         private int dataProcessingSpeed;
         private String hostname;
         private int port;
+        private int donwnloadSpeed;
+        private int uploadSpeed;
 
         private AES_Decryption256 decryption;
 
-        public CloudServer(int dataProcessingSpeed, String hostname, int port, AES_Decryption256 decryption) {
+        public CloudServer(int dataProcessingSpeed, String hostname, int port, int downloadSpeed, int uploadSpeed,
+                AES_Decryption256 decryption) {
             this.dataProcessingSpeed = dataProcessingSpeed;
             this.hostname = hostname;
             this.port = port;
             this.decryption = decryption;
+            this.donwnloadSpeed = downloadSpeed;
+            this.uploadSpeed = uploadSpeed;
         }
 
         public int getDataProcessingSpeed() {
@@ -234,20 +378,25 @@ public class encryptionApproach {
             return port;
         }
 
+        public int getDownloadSpeed() {
+            return donwnloadSpeed;
+        }
+
+        public int getUploadSpeed() {
+            return uploadSpeed;
+        }
+
         public void processDataFromCloudServer(CloudServer cloudServer, MobileDevice mobileDevice) {
             try (Socket socket = new Socket(cloudServer.getHostname(), cloudServer.getPort())) {
-                // Read the data from the edge server
+
                 byte[] data = new byte[1024];
                 int bytesRead;
                 try (InputStream inputStream = socket.getInputStream();
                         OutputStream outputStream = socket.getOutputStream()) {
                     while ((bytesRead = inputStream.read(data)) != -1) {
-                        // Decrypt the data using the provided decryption object
                         String dataToDecrypt = new String(data, 0, bytesRead, StandardCharsets.UTF_8);
                         String decryptedData = decryptData(dataToDecrypt);
 
-                        // Process the decrypted data as needed
-                        // For example, you can write it to another stream or perform other operations.
                         outputStream.write(decryptedData.getBytes(StandardCharsets.UTF_8));
                     }
                     System.out.println(
@@ -258,7 +407,6 @@ public class encryptionApproach {
             }
         }
 
-        // Add a method to decrypt data
         private String decryptData(String data) {
             return decryption.decrypt(data);
         }
@@ -320,7 +468,7 @@ public class encryptionApproach {
 
     private static String generateRandomString() {
         StringBuilder randomString = new StringBuilder();
-        int length = 10; // Change the length as needed
+        int length = 20;
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
         for (int i = 0; i < length; i++) {
