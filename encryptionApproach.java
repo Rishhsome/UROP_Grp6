@@ -22,8 +22,8 @@ import java.io.PrintWriter;
 
 public class encryptionApproach {
 
-    private static final int NUM_EDGE_SERVERS = 50;
-    private static final int NUM_CLOUD_SERVERS = 31;
+    private static final int NUM_EDGE_SERVERS = 8;
+    private static final int NUM_CLOUD_SERVERS = 3;
 
     private static List<MobileDevice> mobileDevices = new ArrayList<>();
     private static List<EdgeServer> edgeServers = new ArrayList<>();
@@ -31,7 +31,7 @@ public class encryptionApproach {
 
     public static void main(String[] args) throws IOException {
         // Create the mobile devices
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 20; i++) {
             int dataProcessingSpeed = (int) (Math.random() * 100) + 1;
             int downloadSpeed = (int) (Math.random() * 50) + 1;
             int uploadSpeed = (int) (Math.random() * 10) + 1;
@@ -81,11 +81,12 @@ public class encryptionApproach {
                     new AES_Decryption256(String.valueOf(mobileNumber))));
         }
 
-        saveMobileDeviceDataToCSV("Mobile_devices/mobile_device_data(100).csv", mobileDevices);
-        saveEdgeServerDataToCSV("Edge_servers/edge_server_data(50).csv", edgeServers);
-        saveCloudServerDataToCSV("Cloud_servers/cloud_server_data(31).csv", cloudServers);
+        saveMobileDeviceDataToCSV("Mobile_devices/mobile_device_data(20).csv", mobileDevices);
+        saveEdgeServerDataToCSV("Edge_servers/edge_server_data(8).csv", edgeServers);
+        saveCloudServerDataToCSV("Cloud_servers/cloud_server_data(3).csv", cloudServers);
 
         // Creating a thread pool to handle the mobile devices
+
         ExecutorService executorService = Executors.newFixedThreadPool(NUM_EDGE_SERVERS);
 
         for (MobileDevice mobileDevice : mobileDevices) {
@@ -97,26 +98,63 @@ public class encryptionApproach {
                 int uploadSpeed = mobileDevice.getUploadSpeed();
                 int dataSentSize = mobileDevice.getDataSentSize();
 
-                CloudServer cloudServer = findMostEfficientCloudServer(dataProcessingSpeed, downloadSpeed, uploadSpeed,
+                CloudServer cloudServer = findMostEfficientCloudServer(dataProcessingSpeed,
+                        downloadSpeed, uploadSpeed,
                         dataSentSize);
                 System.out.println(
-                        "Sending data for Mobile Device " + mobileDevice.getMobileNumber() + " to Edge Server...");
+                        "Sending data for Mobile Device " + mobileDevice.getMobileNumber() +
+                                " to Edge Server...");
 
                 // Generating a random string for this mobile device
                 String randomString = generateRandomString();
                 System.out.println(
-                        "Random String for Mobile Device " + mobileDevice.getMobileNumber() + ": " + randomString);
+                        "Random String for Mobile Device " + mobileDevice.getMobileNumber() + ": " +
+                                randomString);
 
                 edgeServer.sendDataToCloudServer(cloudServer, mobileDevice, randomString);
 
                 // Processing data received from the cloud server
-                System.out.println("Processing data for Mobile Device " + mobileDevice.getMobileNumber()
+                System.out.println("Processing data for Mobile Device " +
+                        mobileDevice.getMobileNumber()
                         + " received from the cloud server...");
                 cloudServer.processDataFromCloudServer(cloudServer, mobileDevice);
             });
         }
 
         executorService.shutdown();
+
+        // Without using Thread concept: -
+        /*
+         * for (MobileDevice mobileDevice : mobileDevices) {
+         * EdgeServer edgeServer = findNearestEdgeServer(mobileDevice);
+         * 
+         * int dataProcessingSpeed = mobileDevice.getDataProcessingSpeed();
+         * int downloadSpeed = mobileDevice.getDownloadSpeed();
+         * int uploadSpeed = mobileDevice.getUploadSpeed();
+         * int dataSentSize = mobileDevice.getDataSentSize();
+         * 
+         * CloudServer cloudServer = findMostEfficientCloudServer(dataProcessingSpeed,
+         * downloadSpeed, uploadSpeed,
+         * dataSentSize);
+         * System.out.println(
+         * "Sending data for Mobile Device " + mobileDevice.getMobileNumber() +
+         * " to Edge Server...");
+         * 
+         * // Generating a random string for this mobile device
+         * String randomString = generateRandomString();
+         * System.out.println(
+         * "Random String for Mobile Device " + mobileDevice.getMobileNumber() + ": " +
+         * randomString);
+         * 
+         * edgeServer.sendDataToCloudServer(cloudServer, mobileDevice, randomString);
+         * 
+         * // Processing data received from the cloud server
+         * System.out.println("Processing data for Mobile Device " +
+         * mobileDevice.getMobileNumber()
+         * + " received from the cloud server...");
+         * cloudServer.processDataFromCloudServer(cloudServer, mobileDevice);
+         * }
+         */
     }
 
     private static void saveMobileDeviceDataToCSV(String filename, List<MobileDevice> devices) throws IOException {
