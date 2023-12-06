@@ -122,39 +122,6 @@ public class encryptionApproach {
         }
 
         executorService.shutdown();
-
-        // Without using Thread concept: -
-        /*
-         * for (MobileDevice mobileDevice : mobileDevices) {
-         * EdgeServer edgeServer = findNearestEdgeServer(mobileDevice);
-         * 
-         * int dataProcessingSpeed = mobileDevice.getDataProcessingSpeed();
-         * int downloadSpeed = mobileDevice.getDownloadSpeed();
-         * int uploadSpeed = mobileDevice.getUploadSpeed();
-         * int dataSentSize = mobileDevice.getDataSentSize();
-         * 
-         * CloudServer cloudServer = findMostEfficientCloudServer(dataProcessingSpeed,
-         * downloadSpeed, uploadSpeed,
-         * dataSentSize);
-         * System.out.println(
-         * "Sending data for Mobile Device " + mobileDevice.getMobileNumber() +
-         * " to Edge Server...");
-         * 
-         * // Generating a random string for this mobile device
-         * String randomString = generateRandomString();
-         * System.out.println(
-         * "Random String for Mobile Device " + mobileDevice.getMobileNumber() + ": " +
-         * randomString);
-         * 
-         * edgeServer.sendDataToCloudServer(cloudServer, mobileDevice, randomString);
-         * 
-         * // Processing data received from the cloud server
-         * System.out.println("Processing data for Mobile Device " +
-         * mobileDevice.getMobileNumber()
-         * + " received from the cloud server...");
-         * cloudServer.processDataFromCloudServer(cloudServer, mobileDevice);
-         * }
-         */
     }
 
     private static void saveMobileDeviceDataToCSV(String filename, List<MobileDevice> devices) throws IOException {

@@ -8,3 +8,11 @@ encryptionApproach$AES_Decryption256.class
 Cloud_servers
 Edge_servers
 Mobile_devices
+withoutThread.java
+withoutThread.class
+withoutThread$AES_Decryption256.class
+withoutThread$AES_Encryption256.class
+withoutThread$CloudServer.class
+withoutThread$EdgeServer.class
+withoutThread$MobileDevice.class
+.vscode
